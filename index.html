@@ -13,17 +13,68 @@
             crossorigin="anonymous"></script>
     <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
     <style>
-        #map { height: 400px; }
-        #route-instructions { padding: 10px; background-color: #f4f4f4; margin-top: 10px; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Nutzt die volle Höhe des Bildschirms */
+            padding: 15px;
+        }
+        #map {
+            flex: 1; /* Karte nimmt den verfügbaren Platz ein */
+            width: 100%;
+            height: 400px;
+        }
+        #route-instructions {
+            padding: 10px;
+            background-color: #f4f4f4;
+            margin-top: 10px;
+            height: 200px; /* Fester Platz für die Route-Anweisungen */
+            overflow-y: auto; /* Bei vielen Anweisungen wird gescrollt */
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        h1 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
-    <h1>Map User Location and Directions</h1>
-    <input type="text" id="address-input" placeholder="Enter address here...">
-    <button onclick="geocodeAddress()">Search Address</button>
-    <button onclick="findHospitals()">Find Nearest Hospitals</button>
-    <div id="map"></div>
-    <div id="route-instructions"></div>
+    <div class="container">
+        <h1>Map User Location and Directions</h1>
+        <input type="text" id="address-input" placeholder="Enter address here...">
+        <button onclick="geocodeAddress()">Search Address</button>
+        <button onclick="findHospitals()">Find Nearest Hospitals</button>
+        <button id="export-route" style="display: none;">Export Route to Google Maps</button>
+        <div id="map"></div>
+        <div id="route-instructions"></div>
+    </div>
     <script>
         const map = L.map('map').setView([51.505, -0.09], 13);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -31,7 +82,7 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
     
-        let userPosition, routingControl;
+        let userPosition, routingControl, routeUrl;
     
         function geocodeAddress() {
             const input = document.getElementById('address-input').value;
@@ -108,8 +159,20 @@
                 fitSelectedRoutes: true,
                 showAlternatives: false
             }).addTo(map);
+
+            // Route-URL für Google Maps erstellen
+            routeUrl = `https://www.google.com/maps/dir/?api=1&origin=${start[0]},${start[1]}&destination=${end[0]},${end[1]}&travelmode=driving`;
+            document.getElementById('export-route').style.display = 'block';
         }
-    
+
+        document.getElementById('export-route').addEventListener('click', function() {
+            if (routeUrl) {
+                window.open(routeUrl, '_blank');
+            } else {
+                alert('Keine Route verfügbar, um exportiert zu werden.');
+            }
+        });
+
         const options = {
             enableHighAccuracy: true,
             timeout: 5000,
@@ -126,24 +189,24 @@
             }
         }, function(err) {
             console.error('Geolokalisierungsfehler:', err);
-        alert("Fehler: " + (err.message || "Ihr Standort kann nicht abgerufen werden."));
-    }, options);
-
-    // Optional: Bei Seitenladung kann auch direkt eine Krankenhaussuche angestoßen werden,
-    // falls der Benutzer bereits zuvor seinen Standort genehmigt hat.
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(pos) {
-            userPosition = [pos.coords.latitude, pos.coords.longitude];
-            L.marker(userPosition).addTo(map)
-                .bindPopup("Aktueller Standort").openPopup();
-            map.setView(userPosition, 13);
-            findHospitals();
-        }, function(err) {
-            console.error('Initialer Geolokalisierungsfehler:', err);
+            alert("Fehler: " + (err.message || "Ihr Standort kann nicht abgerufen werden."));
         }, options);
-    } else {
-        alert("Geolokalisierung wird von Ihrem Browser nicht unterstützt.");
-    }
-</script>
+
+        // Optional: Bei Seitenladung kann auch direkt eine Krankenhaussuche angestoßen werden,
+        // falls der Benutzer bereits zuvor seinen Standort genehmigt hat.
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                userPosition = [pos.coords.latitude, pos.coords.longitude];
+                L.marker(userPosition).addTo(map)
+                    .bindPopup("Aktueller Standort").openPopup();
+                map.setView(userPosition, 13);
+                findHospitals();
+            }, function(err) {
+                console.error('Initialer Geolokalisierungsfehler:', err);
+            }, options);
+        } else {
+            alert("Geolokalisierung wird von Ihrem Browser nicht unterstützt.");
+        }
+    </script>
 </body>
 </html>
